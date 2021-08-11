@@ -13,15 +13,14 @@
 ## 性能情况
 | 训练数据集 | 权值文件名称 | 测试数据集 | 输入图片大小 | mAP 0.5:0.95 | mAP 0.5 |
 | :-----: | :-----: | :------: | :------: | :------: | :-----: |
-| COCO-Train2017 | [yolo_weights.pth](https://github.com/bubbliiiing/yolo3-pytorch/releases/download/v1.0/yolo_weights.pth) | COCO-Val2017 | 416x416 | 38.0 | 67.2
+| COCO-Train2017 | [yolo_weights.h5](https://github.com/bubbliiiing/yolo3-tf2/releases/download/v1.0/yolo_weights.h5) | COCO-Val2017 | 416x416 | 38.1 | 66.8
 
 ## 所需环境
 tensorflow==2.2.0
 
 ## 文件下载
 训练所需的yolo_weights.pth可以在百度云下载。  
-链接: https://pan.baidu.com/s/1ncREw6Na9ycZptdxiVMApw   
-提取码: appk
+链接: https://pan.baidu.com/s/1URJJiPUYjiWzitU0nytBnA 提取码: qvxs  
 
 VOC数据集下载地址如下：  
 VOC2007+2012训练集    
