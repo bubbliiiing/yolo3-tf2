@@ -61,7 +61,7 @@ def get_grid_anchors(feats, anchors):
     #------------------------------------------#
     grid_w  = K.ones_like(grid_x) * grid_shape[1]
     grid_h  = K.ones_like(grid_y) * grid_shape[0]
-    grid_wh = K.concatenate([K.cast(grid_h, K.dtype(feats)), K.cast(grid_w, K.dtype(feats))])
+    grid_wh = K.concatenate([K.cast(grid_w, K.dtype(feats)), K.cast(grid_h, K.dtype(feats))])
     grid_wh = K.reshape(grid_wh, [-1, 2])
     return grid_anchors, grid_wh
 
