@@ -136,8 +136,8 @@ if __name__ == "__main__":
     #   提示OOM或者显存不足请调小Batch_size
     #------------------------------------------------------#
     if True:
-        epoch_step      = num_train // Unfreeze_batch_size
-        epoch_step_val  = num_val   // Unfreeze_batch_size
+        epoch_step      = num_train // Freeze_batch_size
+        epoch_step_val  = num_val   // Freeze_batch_size
 
         if epoch_step == 0 or epoch_step_val == 0:
             raise ValueError('数据集过小，无法进行训练，请扩充数据集。')
