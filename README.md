@@ -22,14 +22,6 @@ tensorflow==2.2.0
 训练所需的yolo_weights.pth可以在百度云下载。  
 链接: https://pan.baidu.com/s/1URJJiPUYjiWzitU0nytBnA 提取码: qvxs  
 
-VOC数据集下载地址如下：  
-VOC2007+2012训练集    
-链接: https://pan.baidu.com/s/16pemiBGd-P9q2j7dZKGDFA 提取码: eiw9    
-
-VOC2007测试集   
-链接: https://pan.baidu.com/s/1BnMiFwlNwIWG9gsd4jHLig 提取码: dsda   
-
-
 VOC数据集下载地址如下，里面已经包括了训练集、测试集、验证集（与测试集一样），无需再次划分：  
 链接: https://pan.baidu.com/s/1YuBbBKxm2FGgTU5OfaeC5A    
 提取码: uack   
