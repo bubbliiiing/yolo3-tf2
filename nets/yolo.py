@@ -5,6 +5,7 @@ from utils.utils import compose
 from nets.darknet import DarknetConv2D, DarknetConv2D_BN_Leaky, darknet_body
 from nets.yolo_training import yolo_loss
 
+
 #---------------------------------------------------#
 #   特征层->最后的输出
 #---------------------------------------------------#
@@ -18,6 +19,7 @@ def make_five_conv(x, num_filters):
 
 def make_yolo_head(x, num_filters, out_filters):
     y = DarknetConv2D_BN_Leaky(num_filters*2, (3,3))(x)
+    # 255->3, 85->3, 4 + 1 + 80
     y = DarknetConv2D(out_filters, (1,1))(y)
     return y
 
@@ -72,7 +74,7 @@ def yolo_body(input_shape, anchors_mask, num_classes):
 
 def get_train_model(model_body, input_shape, num_classes, anchors, anchors_mask):
     y_true = [Input(shape = (input_shape[0] // {0:32, 1:16, 2:8}[l], input_shape[1] // {0:32, 1:16, 2:8}[l], \
-                                len(anchors_mask[l]), num_classes + 5)) for l in range(3)]
+                                len(anchors_mask[l]), num_classes + 5)) for l in range(len(anchors_mask))]
     model_loss  = Lambda(
         yolo_loss, 
         output_shape    = (1, ), 

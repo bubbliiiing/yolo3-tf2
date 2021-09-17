@@ -23,7 +23,7 @@ if __name__ == "__main__":
     #----------------------------------------------------#
     #   是否使用eager模式训练
     #----------------------------------------------------#
-    eager = False
+    eager           = False
     #--------------------------------------------------------#
     #   训练前一定要修改classes_path，使其对应自己的数据集
     #--------------------------------------------------------#
@@ -136,46 +136,47 @@ if __name__ == "__main__":
     #   提示OOM或者显存不足请调小Batch_size
     #------------------------------------------------------#
     if True:
-        epoch_step      = num_train // Freeze_batch_size
-        epoch_step_val  = num_val   // Freeze_batch_size
+        batch_size  = Freeze_batch_size
+        lr          = Freeze_lr
+        start_epoch = Init_Epoch
+        end_epoch   = Freeze_Epoch
+
+        epoch_step      = num_train // batch_size
+        epoch_step_val  = num_val   // batch_size
 
         if epoch_step == 0 or epoch_step_val == 0:
             raise ValueError('数据集过小，无法进行训练，请扩充数据集。')
 
-        print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, Freeze_batch_size))
-        if eager:
-            gen     = tf.data.Dataset.from_generator(partial(
-                YoloDatasets(train_lines, input_shape, anchors, Freeze_batch_size, num_classes, anchors_mask, train = True).generate
-            ), (tf.float32, tf.float32, tf.float32, tf.float32))
-            gen_val = tf.data.Dataset.from_generator(partial(
-                YoloDatasets(train_lines, input_shape, anchors, Freeze_batch_size, num_classes, anchors_mask, train = False).generate
-            ), (tf.float32, tf.float32, tf.float32, tf.float32))
+        train_dataloader    = YoloDatasets(train_lines, input_shape, anchors, batch_size, num_classes, anchors_mask, train = True)
+        val_dataloader      = YoloDatasets(val_lines, input_shape, anchors, batch_size, num_classes, anchors_mask, train = False)
 
-            gen     = gen.shuffle(buffer_size = Freeze_batch_size).prefetch(buffer_size = Freeze_batch_size)
-            gen_val = gen_val.shuffle(buffer_size = Freeze_batch_size).prefetch(buffer_size = Freeze_batch_size)
+        print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
+        if eager:
+            gen     = tf.data.Dataset.from_generator(partial(train_dataloader.generate), (tf.float32, tf.float32, tf.float32, tf.float32))
+            gen_val = tf.data.Dataset.from_generator(partial(val_dataloader.generate), (tf.float32, tf.float32, tf.float32, tf.float32))
+
+            gen     = gen.shuffle(buffer_size = batch_size).prefetch(buffer_size = batch_size)
+            gen_val = gen_val.shuffle(buffer_size = batch_size).prefetch(buffer_size = batch_size)
 
             lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate = Freeze_lr, decay_steps = epoch_step, decay_rate=0.92, staircase=True)
+                initial_learning_rate = lr, decay_steps = epoch_step, decay_rate=0.92, staircase=True)
             
             optimizer = tf.keras.optimizers.Adam(learning_rate = lr_schedule)
 
-            for epoch in range(Init_Epoch, Freeze_Epoch):
+            for epoch in range(start_epoch, end_epoch):
                 fit_one_epoch(model_body, loss_history, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, 
-                            Freeze_Epoch, input_shape, anchors, anchors_mask, num_classes)
+                            end_epoch, input_shape, anchors, anchors_mask, num_classes)
 
         else:
-            model.compile(optimizer=Adam(lr = Freeze_lr), loss={'yolo_loss': lambda y_true, y_pred: y_pred})
-
-            train_dataloader    = YoloDatasets(train_lines, input_shape, anchors, Freeze_batch_size, num_classes, anchors_mask, train = True)
-            val_dataloader      = YoloDatasets(val_lines, input_shape, anchors, Freeze_batch_size, num_classes, anchors_mask, train = False)
+            model.compile(optimizer=Adam(lr = lr), loss={'yolo_loss': lambda y_true, y_pred: y_pred})
 
             model.fit_generator(
                 generator           = train_dataloader,
                 steps_per_epoch     = epoch_step,
                 validation_data     = val_dataloader,
                 validation_steps    = epoch_step_val,
-                epochs              = Freeze_Epoch,
-                initial_epoch       = Init_Epoch,
+                epochs              = end_epoch,
+                initial_epoch       = start_epoch,
                 use_multiprocessing = True if num_workers != 0 else False,
                 workers             = num_workers,
                 callbacks           = [logging, checkpoint, reduce_lr, early_stopping, loss_history]
@@ -185,46 +186,47 @@ if __name__ == "__main__":
         for i in range(freeze_layers): model_body.layers[i].trainable = True
 
     if True:
-        epoch_step      = num_train // Unfreeze_batch_size
-        epoch_step_val  = num_val   // Unfreeze_batch_size
+        batch_size  = Unfreeze_batch_size
+        lr          = Unfreeze_lr
+        start_epoch = Freeze_Epoch
+        end_epoch   = UnFreeze_Epoch
+
+        epoch_step      = num_train // batch_size
+        epoch_step_val  = num_val   // batch_size
 
         if epoch_step == 0 or epoch_step_val == 0:
             raise ValueError('数据集过小，无法进行训练，请扩充数据集。')
 
-        print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, Unfreeze_batch_size))
-        if eager:
-            gen     = tf.data.Dataset.from_generator(partial(
-                YoloDatasets(train_lines, input_shape, anchors, Unfreeze_batch_size, num_classes, anchors_mask, train = True).generate
-            ), (tf.float32, tf.float32, tf.float32, tf.float32))
-            gen_val = tf.data.Dataset.from_generator(partial(
-                YoloDatasets(train_lines, input_shape, anchors, Unfreeze_batch_size, num_classes, anchors_mask, train = False).generate
-            ), (tf.float32, tf.float32, tf.float32, tf.float32))
+        train_dataloader    = YoloDatasets(train_lines, input_shape, anchors, batch_size, num_classes, anchors_mask, train = True)
+        val_dataloader      = YoloDatasets(val_lines, input_shape, anchors, batch_size, num_classes, anchors_mask, train = False)
 
-            gen     = gen.shuffle(buffer_size = Unfreeze_batch_size).prefetch(buffer_size = Unfreeze_batch_size)
-            gen_val = gen_val.shuffle(buffer_size = Unfreeze_batch_size).prefetch(buffer_size = Unfreeze_batch_size)
+        print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
+        if eager:
+            gen     = tf.data.Dataset.from_generator(partial(train_dataloader.generate), (tf.float32, tf.float32, tf.float32, tf.float32))
+            gen_val = tf.data.Dataset.from_generator(partial(val_dataloader.generate), (tf.float32, tf.float32, tf.float32, tf.float32))
+
+            gen     = gen.shuffle(buffer_size = batch_size).prefetch(buffer_size = batch_size)
+            gen_val = gen_val.shuffle(buffer_size = batch_size).prefetch(buffer_size = batch_size)
 
             lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate = Unfreeze_lr, decay_steps = epoch_step, decay_rate=0.92, staircase=True)
+                initial_learning_rate = lr, decay_steps = epoch_step, decay_rate=0.92, staircase=True)
             
             optimizer = tf.keras.optimizers.Adam(learning_rate = lr_schedule)
 
-            for epoch in range(Freeze_Epoch, UnFreeze_Epoch):
+            for epoch in range(start_epoch, end_epoch):
                 fit_one_epoch(model_body, loss_history, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, 
-                            UnFreeze_Epoch, input_shape, anchors, anchors_mask, num_classes)
+                            end_epoch, input_shape, anchors, anchors_mask, num_classes)
 
         else:
-            model.compile(optimizer=Adam(lr = Unfreeze_lr), loss={'yolo_loss': lambda y_true, y_pred: y_pred})
-
-            train_dataloader    = YoloDatasets(train_lines, input_shape, anchors, Unfreeze_batch_size, num_classes, anchors_mask, train = True)
-            val_dataloader      = YoloDatasets(val_lines, input_shape, anchors, Unfreeze_batch_size, num_classes, anchors_mask, train = False)
+            model.compile(optimizer=Adam(lr = lr), loss={'yolo_loss': lambda y_true, y_pred: y_pred})
 
             model.fit_generator(
                 generator           = train_dataloader,
                 steps_per_epoch     = epoch_step,
                 validation_data     = val_dataloader,
                 validation_steps    = epoch_step_val,
-                epochs              = UnFreeze_Epoch,
-                initial_epoch       = Freeze_Epoch,
+                epochs              = end_epoch,
+                initial_epoch       = start_epoch,
                 use_multiprocessing = True if num_workers != 0 else False,
                 workers             = num_workers,
                 callbacks           = [logging, checkpoint, reduce_lr, early_stopping, loss_history]

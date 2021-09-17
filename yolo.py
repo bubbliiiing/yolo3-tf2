@@ -9,8 +9,9 @@ from tensorflow.keras.layers import Input, Lambda
 from tensorflow.keras.models import Model
 
 from nets.yolo import yolo_body
+from utils.utils import (cvtColor, get_anchors, get_classes, preprocess_input,
+                         resize_image)
 from utils.utils_bbox import DecodeBox
-from utils.utils import resize_image, get_classes, get_anchors, cvtColor
 
 
 class YOLO(object):
@@ -45,7 +46,7 @@ class YOLO(object):
         #   该变量用于控制是否使用letterbox_image对输入图像进行不失真的resize，
         #   在多次测试后，发现关闭letterbox_image直接resize的效果更好
         #---------------------------------------------------------------------#
-        "letterbox_image"   : False,
+        "letterbox_image"   : True,
     }
 
     @classmethod
@@ -133,7 +134,7 @@ class YOLO(object):
         #---------------------------------------------------------#
         #   添加上batch_size维度，并进行归一化
         #---------------------------------------------------------#
-        image_data  = np.expand_dims(np.array(image_data, dtype='float32'), 0) / 255.
+        image_data  = np.expand_dims(preprocess_input(np.array(image_data, dtype='float32')), 0)
 
         #---------------------------------------------------------#
         #   将图像输入网络当中进行预测！
@@ -196,7 +197,7 @@ class YOLO(object):
         #---------------------------------------------------------#
         #   添加上batch_size维度，并进行归一化
         #---------------------------------------------------------#
-        image_data  = np.expand_dims(np.array(image_data, dtype='float32'), 0) / 255.
+        image_data  = np.expand_dims(preprocess_input(np.array(image_data, dtype='float32')), 0)
         
         #---------------------------------------------------------#
         #   将图像输入网络当中进行预测！
@@ -211,5 +212,43 @@ class YOLO(object):
         tact_time = (t2 - t1) / test_interval
         return tact_time
 
-    def close_session(self):
-        self.sess.close()
+    #---------------------------------------------------#
+    #   检测图片
+    #---------------------------------------------------#
+    def get_map_txt(self, image_id, image, class_names, map_out_path):
+        f = open(os.path.join(map_out_path, "detection-results/"+image_id+".txt"),"w") 
+        #---------------------------------------------------------#
+        #   在这里将图像转换成RGB图像，防止灰度图在预测时报错。
+        #---------------------------------------------------------#
+        image       = cvtColor(image)
+        #---------------------------------------------------------#
+        #   给图像增加灰条，实现不失真的resize
+        #   也可以直接resize进行识别
+        #---------------------------------------------------------#
+        image_data  = resize_image(image, (self.input_shape[1], self.input_shape[0]), self.letterbox_image)
+        #---------------------------------------------------------#
+        #   添加上batch_size维度，并进行归一化
+        #---------------------------------------------------------#
+        image_data  = np.expand_dims(preprocess_input(np.array(image_data, dtype='float32')), 0)
+
+        #---------------------------------------------------------#
+        #   将图像输入网络当中进行预测！
+        #---------------------------------------------------------#
+        input_image_shape = np.expand_dims(np.array([image.size[1], image.size[0]], dtype='float32'), 0)
+        out_boxes, out_scores, out_classes = self.get_pred(image_data, input_image_shape) 
+
+        for i, c in enumerate(out_classes):
+            predicted_class             = self.class_names[int(c)]
+            try:
+                score                   = str(out_scores[i].numpy())
+            except:
+                score                   = str(out_scores[i])
+            top, left, bottom, right    = out_boxes[i]
+            if predicted_class not in class_names:
+                continue
+
+            f.write("%s %s %s %s %s %s\n" % (predicted_class, score[:6], str(int(left)), str(int(top)), str(int(right)),str(int(bottom))))
+
+        f.close()
+        return 
+        

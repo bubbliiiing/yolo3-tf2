@@ -58,3 +58,7 @@ def get_anchors(anchors_path):
     anchors = [float(x) for x in anchors.split(',')]
     anchors = np.array(anchors).reshape(-1, 2)
     return anchors, len(anchors)
+
+def preprocess_input(image):
+    image /= 255.0
+    return image

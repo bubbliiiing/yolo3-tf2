@@ -57,8 +57,8 @@ def fit_one_epoch(net, loss_history, optimizer, epoch, epoch_step, epoch_step_va
             pbar.update(1)
     print('Finish Validation')
 
-    logs = {'loss': loss.numpy() / (epoch_step+1), 'val_loss': val_loss.numpy() / (epoch_step_val+1)}
+    logs = {'loss': loss.numpy() / epoch_step, 'val_loss': val_loss.numpy() / epoch_step_val}
     loss_history.on_epoch_end([], logs)
     print('Epoch:'+ str(epoch+1) + '/' + str(Epoch))
-    print('Total Loss: %.3f || Val Loss: %.3f ' % (loss / (epoch_step + 1), val_loss / (epoch_step_val + 1)))
-    net.save_weights('logs/ep%03d-loss%.3f-val_loss%.3f.h5' % ((epoch + 1), loss / (epoch_step + 1) ,val_loss / (epoch_step_val + 1)))
+    print('Total Loss: %.3f || Val Loss: %.3f ' % (loss / epoch_step, val_loss / epoch_step_val))
+    net.save_weights('logs/ep%03d-loss%.3f-val_loss%.3f.h5' % (epoch + 1, loss / epoch_step, val_loss / epoch_step_val))
