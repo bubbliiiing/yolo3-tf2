@@ -116,7 +116,7 @@ if __name__ == "__main__":
     logging         = TensorBoard(log_dir = 'logs/')
     checkpoint      = ModelCheckpoint('logs/ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5',
                             monitor = 'val_loss', save_weights_only = True, save_best_only = False, period = 1)
-    reduce_lr       = ExponentDecayScheduler(decay_rate = 0.92, verbose = 1)
+    reduce_lr       = ExponentDecayScheduler(decay_rate = 0.94, verbose = 1)
     early_stopping  = EarlyStopping(monitor='val_loss', min_delta = 0, patience = 10, verbose = 1)
     loss_history    = LossHistory('logs/')
 
@@ -167,7 +167,7 @@ if __name__ == "__main__":
             gen_val = gen_val.shuffle(buffer_size = batch_size).prefetch(buffer_size = batch_size)
 
             lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate = lr, decay_steps = epoch_step, decay_rate=0.92, staircase=True)
+                initial_learning_rate = lr, decay_steps = epoch_step, decay_rate=0.94, staircase=True)
             
             optimizer = tf.keras.optimizers.Adam(learning_rate = lr_schedule)
 
@@ -217,7 +217,7 @@ if __name__ == "__main__":
             gen_val = gen_val.shuffle(buffer_size = batch_size).prefetch(buffer_size = batch_size)
 
             lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate = lr, decay_steps = epoch_step, decay_rate=0.92, staircase=True)
+                initial_learning_rate = lr, decay_steps = epoch_step, decay_rate=0.94, staircase=True)
             
             optimizer = tf.keras.optimizers.Adam(learning_rate = lr_schedule)
 
