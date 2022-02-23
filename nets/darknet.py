@@ -12,8 +12,12 @@ from utils.utils import compose
 #------------------------------------------------------#
 @wraps(Conv2D)
 def DarknetConv2D(*args, **kwargs):
-    darknet_conv_kwargs = {'kernel_initializer' : RandomNormal(stddev=0.02), 'kernel_regularizer': l2(5e-4)}
-    darknet_conv_kwargs['padding'] = 'valid' if kwargs.get('strides')==(2, 2) else 'same'
+    darknet_conv_kwargs = {'kernel_initializer' : RandomNormal(stddev=0.02), 'kernel_regularizer' : l2(kwargs.get('weight_decay', 5e-4))}
+    darknet_conv_kwargs['padding'] = 'valid' if kwargs.get('strides')==(2, 2) else 'same'   
+    try:
+        del kwargs['weight_decay']
+    except:
+        pass
     darknet_conv_kwargs.update(kwargs)
     return Conv2D(*args, **darknet_conv_kwargs)
 
@@ -34,12 +38,12 @@ def DarknetConv2D_BN_Leaky(*args, **kwargs):
 #   首先利用ZeroPadding2D和一个步长为2x2的卷积块进行高和宽的压缩
 #   然后对num_blocks进行循环，循环内部是残差结构。
 #---------------------------------------------------------------------#
-def resblock_body(x, num_filters, num_blocks):
+def resblock_body(x, num_filters, num_blocks, weight_decay=5e-4):
     x = ZeroPadding2D(((1,0),(1,0)))(x)
-    x = DarknetConv2D_BN_Leaky(num_filters, (3,3), strides=(2,2))(x)
+    x = DarknetConv2D_BN_Leaky(num_filters, (3,3), strides=(2,2), weight_decay=weight_decay)(x)
     for i in range(num_blocks):
-        y = DarknetConv2D_BN_Leaky(num_filters//2, (1,1))(x)
-        y = DarknetConv2D_BN_Leaky(num_filters, (3,3))(y)
+        y = DarknetConv2D_BN_Leaky(num_filters//2, (1,1), weight_decay=weight_decay)(x)
+        y = DarknetConv2D_BN_Leaky(num_filters, (3,3), weight_decay=weight_decay)(y)
         x = Add()([x,y])
     return x
 
@@ -48,9 +52,9 @@ def resblock_body(x, num_filters, num_blocks):
 #   输入为一张416x416x3的图片
 #   输出为三个有效特征层
 #---------------------------------------------------#
-def darknet_body(x):
+def darknet_body(x, weight_decay=5e-4):
     # 416,416,3 -> 416,416,32
-    x = DarknetConv2D_BN_Leaky(32, (3,3))(x)
+    x = DarknetConv2D_BN_Leaky(32, (3,3), weight_decay=weight_decay)(x)
     # 416,416,32 -> 208,208,64
     x = resblock_body(x, 64, 1)
     # 208,208,64 -> 104,104,128

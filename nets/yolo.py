@@ -9,24 +9,24 @@ from nets.yolo_training import yolo_loss
 #---------------------------------------------------#
 #   特征层->最后的输出
 #---------------------------------------------------#
-def make_five_conv(x, num_filters):
-    x = DarknetConv2D_BN_Leaky(num_filters, (1,1))(x)
-    x = DarknetConv2D_BN_Leaky(num_filters*2, (3,3))(x)
-    x = DarknetConv2D_BN_Leaky(num_filters, (1,1))(x)
-    x = DarknetConv2D_BN_Leaky(num_filters*2, (3,3))(x)
-    x = DarknetConv2D_BN_Leaky(num_filters, (1,1))(x)
+def make_five_conv(x, num_filters, weight_decay=5e-4):
+    x = DarknetConv2D_BN_Leaky(num_filters, (1,1), weight_decay=weight_decay)(x)
+    x = DarknetConv2D_BN_Leaky(num_filters*2, (3,3), weight_decay=weight_decay)(x)
+    x = DarknetConv2D_BN_Leaky(num_filters, (1,1), weight_decay=weight_decay)(x)
+    x = DarknetConv2D_BN_Leaky(num_filters*2, (3,3), weight_decay=weight_decay)(x)
+    x = DarknetConv2D_BN_Leaky(num_filters, (1,1), weight_decay=weight_decay)(x)
     return x
 
-def make_yolo_head(x, num_filters, out_filters):
-    y = DarknetConv2D_BN_Leaky(num_filters*2, (3,3))(x)
+def make_yolo_head(x, num_filters, out_filters, weight_decay=5e-4):
+    y = DarknetConv2D_BN_Leaky(num_filters*2, (3,3), weight_decay=weight_decay)(x)
     # 255->3, 85->3, 4 + 1 + 80
-    y = DarknetConv2D(out_filters, (1,1))(y)
+    y = DarknetConv2D(out_filters, (1,1), weight_decay=weight_decay)(y)
     return y
 
 #---------------------------------------------------#
 #   FPN网络的构建，并且获得预测结果
 #---------------------------------------------------#
-def yolo_body(input_shape, anchors_mask, num_classes):
+def yolo_body(input_shape, anchors_mask, num_classes, weight_decay=5e-4):
     inputs      = Input(input_shape)
     #---------------------------------------------------#   
     #   生成darknet53的主干模型
@@ -35,18 +35,18 @@ def yolo_body(input_shape, anchors_mask, num_classes):
     #   C4 为 26,26,512
     #   C5 为 13,13,1024
     #---------------------------------------------------#
-    C3, C4, C5  = darknet_body(inputs)
+    C3, C4, C5  = darknet_body(inputs, weight_decay)
 
     #---------------------------------------------------#
     #   第一个特征层
     #   y1=(batch_size,13,13,3,85)
     #---------------------------------------------------#
     # 13,13,1024 -> 13,13,512 -> 13,13,1024 -> 13,13,512 -> 13,13,1024 -> 13,13,512
-    x   = make_five_conv(C5, 512)
-    P5  = make_yolo_head(x, 512, len(anchors_mask[0]) * (num_classes+5))
+    x   = make_five_conv(C5, 512, weight_decay)
+    P5  = make_yolo_head(x, 512, len(anchors_mask[0]) * (num_classes+5), weight_decay)
 
     # 13,13,512 -> 13,13,256 -> 26,26,256
-    x   = compose(DarknetConv2D_BN_Leaky(256, (1,1)), UpSampling2D(2))(x)
+    x   = compose(DarknetConv2D_BN_Leaky(256, (1,1), weight_decay=weight_decay), UpSampling2D(2))(x)
 
     # 26,26,256 + 26,26,512 -> 26,26,768
     x   = Concatenate()([x, C4])
@@ -55,11 +55,11 @@ def yolo_body(input_shape, anchors_mask, num_classes):
     #   y2=(batch_size,26,26,3,85)
     #---------------------------------------------------#
     # 26,26,768 -> 26,26,256 -> 26,26,512 -> 26,26,256 -> 26,26,512 -> 26,26,256
-    x   = make_five_conv(x, 256)
-    P4  = make_yolo_head(x, 256, len(anchors_mask[1]) * (num_classes+5))
+    x   = make_five_conv(x, 256, weight_decay)
+    P4  = make_yolo_head(x, 256, len(anchors_mask[1]) * (num_classes+5), weight_decay)
 
     # 26,26,256 -> 26,26,128 -> 52,52,128
-    x   = compose(DarknetConv2D_BN_Leaky(128, (1,1)), UpSampling2D(2))(x)
+    x   = compose(DarknetConv2D_BN_Leaky(128, (1,1), weight_decay=weight_decay), UpSampling2D(2))(x)
     # 52,52,128 + 52,52,256 -> 52,52,384
     x   = Concatenate()([x, C3])
     #---------------------------------------------------#
@@ -67,8 +67,8 @@ def yolo_body(input_shape, anchors_mask, num_classes):
     #   y3=(batch_size,52,52,3,85)
     #---------------------------------------------------#
     # 52,52,384 -> 52,52,128 -> 52,52,256 -> 52,52,128 -> 52,52,256 -> 52,52,128
-    x   = make_five_conv(x, 128)
-    P3  = make_yolo_head(x, 128, len(anchors_mask[2]) * (num_classes+5))
+    x   = make_five_conv(x, 128, weight_decay)
+    P3  = make_yolo_head(x, 128, len(anchors_mask[2]) * (num_classes+5), weight_decay)
     return Model(inputs, [P5, P4, P3])
 
 
@@ -79,7 +79,16 @@ def get_train_model(model_body, input_shape, num_classes, anchors, anchors_mask)
         yolo_loss, 
         output_shape    = (1, ), 
         name            = 'yolo_loss', 
-        arguments       = {'input_shape' : input_shape, 'anchors' : anchors, 'anchors_mask' : anchors_mask, 'num_classes' : num_classes}
+        arguments       = {
+            'input_shape'       : input_shape, 
+            'anchors'           : anchors, 
+            'anchors_mask'      : anchors_mask, 
+            'num_classes'       : num_classes, 
+            'balance'           : [0.4, 1.0, 4],
+            'box_ratio'         : 0.05,
+            'obj_ratio'         : 5 * (input_shape[0] * input_shape[1]) / (416 ** 2), 
+            'cls_ratio'         : 1 * (num_classes / 80)
+        }
     )([*model_body.output, *y_true])
     model       = Model([model_body.input, *y_true], model_loss)
     return model

@@ -18,7 +18,7 @@ def get_train_step_fn(input_shape, anchors, anchors_mask, num_classes):
     return train_step
 
 def fit_one_epoch(net, loss_history, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, Epoch, 
-            input_shape, anchors, anchors_mask, num_classes):
+            input_shape, anchors, anchors_mask, num_classes, save_period):
     train_step  = get_train_step_fn(input_shape, anchors, anchors_mask, num_classes)
     loss        = 0
     val_loss    = 0
@@ -61,4 +61,5 @@ def fit_one_epoch(net, loss_history, optimizer, epoch, epoch_step, epoch_step_va
     loss_history.on_epoch_end([], logs)
     print('Epoch:'+ str(epoch+1) + '/' + str(Epoch))
     print('Total Loss: %.3f || Val Loss: %.3f ' % (loss / epoch_step, val_loss / epoch_step_val))
-    net.save_weights('logs/ep%03d-loss%.3f-val_loss%.3f.h5' % (epoch + 1, loss / epoch_step, val_loss / epoch_step_val))
+    if (epoch + 1) % save_period == 0:
+        net.save_weights('logs/ep%03d-loss%.3f-val_loss%.3f.h5' % (epoch + 1, loss / epoch_step, val_loss / epoch_step_val))
