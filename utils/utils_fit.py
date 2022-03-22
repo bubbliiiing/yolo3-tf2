@@ -1,6 +1,9 @@
+import os
+
 import tensorflow as tf
-from tqdm import tqdm
 from nets.yolo import yolo_loss
+from tqdm import tqdm
+
 
 # 防止bug
 def get_train_step_fn(input_shape, anchors, anchors_mask, num_classes):
@@ -12,10 +15,10 @@ def get_train_step_fn(input_shape, anchors, anchors_mask, num_classes):
             args        = [P5_output, P4_output, P3_output] + targets
             loss_value  = yolo_loss(
                 args, input_shape, anchors, anchors_mask, num_classes, 
-                balance=[0.4, 1.0, 4],
-                box_ratio=0.05, 
-                obj_ratio=5 * (input_shape[0] * input_shape[1]) / (416 ** 2),
-                cls_ratio=1 * (num_classes / 80)
+                balance     = [0.4, 1.0, 4],
+                box_ratio   = 0.05, 
+                obj_ratio   = 5 * (input_shape[0] * input_shape[1]) / (416 ** 2),
+                cls_ratio   = 1 * (num_classes / 80)
             )
             loss_value  = tf.reduce_sum(net.losses) + loss_value
         grads = tape.gradient(loss_value, net.trainable_variables)
@@ -24,7 +27,7 @@ def get_train_step_fn(input_shape, anchors, anchors_mask, num_classes):
     return train_step
 
 def fit_one_epoch(net, loss_history, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, Epoch, 
-            input_shape, anchors, anchors_mask, num_classes, save_period):
+            input_shape, anchors, anchors_mask, num_classes, save_period, save_dir):
     train_step  = get_train_step_fn(input_shape, anchors, anchors_mask, num_classes)
     loss        = 0
     val_loss    = 0
@@ -68,4 +71,4 @@ def fit_one_epoch(net, loss_history, optimizer, epoch, epoch_step, epoch_step_va
     print('Epoch:'+ str(epoch+1) + '/' + str(Epoch))
     print('Total Loss: %.3f || Val Loss: %.3f ' % (loss / epoch_step, val_loss / epoch_step_val))
     if (epoch + 1) % save_period == 0:
-        net.save_weights('logs/ep%03d-loss%.3f-val_loss%.3f.h5' % (epoch + 1, loss / epoch_step, val_loss / epoch_step_val))
+        net.save_weights(os.path.join(save_dir, "ep%03d-loss%.3f-val_loss%.3f.pth" % (epoch + 1, loss / epoch_step, val_loss / epoch_step_val)))
