@@ -15,10 +15,7 @@ from utils.dataloader import YoloDatasets
 from utils.utils import get_anchors, get_classes
 from utils.utils_fit import fit_one_epoch
 
-gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
-    
+
 '''
 训练自己的目标检测模型一定需要注意以下几点：
 1、训练前仔细检查自己的格式是否满足要求，该库要求数据集格式为VOC格式，需要准备好的内容有输入图片和标签
